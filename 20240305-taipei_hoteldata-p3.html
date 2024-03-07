@@ -13,11 +13,23 @@
   </head>
   <body>
     <div id="container">
+      <div class="row justify-content-around pt-4">
+        <select
+          class="form-select"
+          aria-label="Default select example"
+          id="dataQuantity"
+        >
+          <option selected>選擇一頁要顯示的資料筆數</option>
+          <option value="10">10(預設值)</option>
+          <option value="20">20</option>
+          <option value="30">30</option>
+        </select>
+      </div>
       <div class="row justify-content-center">
         <div class="col-md-8 pt-5">
           <ul class="list-group" id="hotel_list">
             <li
-              class="list-group-item border border-2 border-danger shadow shadow-lg"
+              class="list-group-item border border-2 border-danger shadow shadow-lg d-none"
             >
               <div class="h3">旅館名稱</div>
               <h5>住址:XXXXXXXX</h5>
@@ -29,11 +41,7 @@
       </div>
       <div class="row mt-3">
         <nav aria-label="Page navigation example">
-          <ul class="pagination justify-content-center" id="pagination">
-            <li class="page-item"><a class="page-link" href="#">上一頁</a></li>
-            <li class="page-item"><a class="page-link" href="#">1</a></li>
-            <li class="page-item"><a class="page-link" href="#">下一頁</a></li>
-          </ul>
+          <ul class="pagination justify-content-center" id="pagination"></ul>
         </nav>
       </div>
     </div>
@@ -44,36 +52,95 @@
     ></script>
     <script src="js/jquery-3.7.1.min.js"></script>
     <script>
+      var newdata;
+      var numOfPage = 20;
       $(function () {
-        $.ajax({
-          type: "GET",
-          url: "https://fiiluo.000webhostapp.com/20240305-taipei_hoteldata-api.php",
-          dataType: "json",
-          success: showdata,
-          error: function () {
-            alert(
-              "error-https://fiiluo.000webhostapp.com/20240305-taipei_hoteldata-api.php"
-            );
-          },
+        // 筆數監聽 click
+        $("#dataQuantity").change(function () {
+          console.log($(this).val());
+          numOfPage = $(this).val();
+
+          $.ajax({
+            type: "GET",
+            url: "https://fiiluo.000webhostapp.com/20240305-taipei_hoteldata-api.php",
+            dataType: "json",
+            async: false,
+            success: showdata,
+            error: function () {
+              alert(
+                "error-https://fiiluo.000webhostapp.com/20240305-taipei_hoteldata-api.php"
+              );
+            },
+          });
+
+          // 頁碼監聽 click
+          $("#pagination #mypage").click(function (event) {
+            event.preventDefault();
+            var page = $(this).data("id");
+            console.log(page);
+            drawView(page);
+            if (page == newdata.length - 1) {
+              $("#nextPage").addClass("d-none");
+            } else {
+              $("#nextPage").removeClass("d-none");
+            }
+            if (page == 0) {
+              $("#previousPage").addClass("d-none");
+            } else {
+              $("#previousPage").removeClass("d-none");
+            }
+          });
         });
       });
       function showdata(data) {
         console.log(data);
-        var newdata = [];
+        newdata = [];
         // 資料結構重組(重構)
         data.forEach(function (item, key) {
-          if (key % 10 == 0) {
+          if (key % numOfPage == 0) {
             newdata.push([]);
           }
 
-          var page = parseInt(key / 10);
+          var page = parseInt(key / numOfPage);
           newdata[page].push(item);
         });
         console.log(newdata);
-        var pagination = $("#pagination");
-        for (let i = 0; i < newdata.length; i++) {
-          console.log(i);
-        }
+        drawView(0);
+
+        // 產生頁碼
+        $("#pagination").empty();
+        $("#pagination").append(
+          '<li class="page-item" id="previousPage"><a class="page-link" href="#">上一頁</a></li>'
+        );
+        newdata.forEach(function (item, key) {
+          var page = key + 1;
+          var strHtml =
+            '<li class="page-item" data-id="' +
+            key +
+            '" id="mypage"><a class="page-link" href="#">' +
+            page +
+            "</a></li>";
+          $("#pagination").append(strHtml);
+        });
+        $("#pagination").append(
+          '<li class="page-item" id="nextPage"><a class="page-link" href="#">下一頁</a></li>'
+        );
+      }
+
+      function drawView(page) {
+        $("#hotel_list").empty();
+        newdata[page].forEach(function (item, key) {
+          console.log(item.name);
+          var strHtml =
+            '<li class="list-group-item border border-2 border-danger shadow shadow-lg mt-3"><div class="h3">' +
+            item.name +
+            "</div><h5>住址:" +
+            item.display_addr +
+            "</h5><h5>電話:" +
+            item.tel +
+            '</h5><button class="btn btn-success w-100">Map</button></li>';
+          $("#hotel_list").append(strHtml);
+        });
       }
     </script>
   </body>
